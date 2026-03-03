@@ -10,21 +10,22 @@ In dieser Phase bringen wir einen Test-Client dazu, ein vollständiges Debian 12
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                      PXE Boot-Ablauf                             │
+│                      iPXE Boot-Ablauf                            │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Client VM (210)                    NetBoot-Server (10.0.0.2)   │
 │  ┌──────────┐                       ┌──────────────────┐        │
-│  │ E1000    │──── DHCP Discover ───→│ dnsmasq          │        │
-│  │ PXE-ROM  │←─── DHCP Offer ──────│ (DHCP + TFTP)    │        │
+│  │ iPXE-ROM │──── DHCP Discover ───→│ dnsmasq          │        │
+│  │ (E1000)  │←─── DHCP Offer ──────│ (DHCP + TFTP)    │        │
 │  │          │     IP: 10.0.0.1xx    │                  │        │
 │  │          │     next: 10.0.0.2    │                  │        │
-│  │          │     file: pxelinux.0  │                  │        │
+│  │          │     file: boot.ipxe   │                  │        │
 │  │          │                       │                  │        │
-│  │          │──── TFTP: pxelinux ──→│ /srv/netboot/    │        │
-│  │          │←─── pxelinux.0 ──────│   tftp/           │        │
-│  │          │←─── pxelinux.cfg ────│                  │        │
-│  │          │←─── vmlinuz ─────────│   tftp/debian12/ │        │
+│  │          │──── TFTP: boot.ipxe ─→│ /srv/netboot/    │        │
+│  │          │←─── iPXE-Script ─────│   tftp/           │        │
+│  │          │                       │                  │        │
+│  │  iPXE    │──── Menü-Auswahl ────→│                  │        │
+│  │  Menü    │←─── vmlinuz ─────────│   tftp/debian12/ │        │
 │  │          │←─── initrd.img ──────│                  │        │
 │  │          │                       │                  │        │
 │  │  Kernel  │──── NFS Mount ───────→│ nfs-server       │        │
@@ -115,7 +116,7 @@ lsinitramfs /srv/netboot/tftp/debian12/initrd.img | grep nfs
 
 ### Auf dem NetBoot-Server (10.0.0.2)
 
-Das Script `setup-netboot-server.sh` richtet dnsmasq (DHCP+TFTP), das PXE-Bootmenü und den NFS-Server ein.
+Das Script `setup-netboot-server.sh` richtet dnsmasq (DHCP+TFTP), das iPXE-Boot-Script und den NFS-Server ein.
 
 ```bash
 chmod +x /opt/netboot-spielerei/scripts/setup-netboot-server.sh
@@ -124,10 +125,10 @@ sudo /opt/netboot-spielerei/scripts/setup-netboot-server.sh
 
 **Was das Script macht:**
 
-1. **Pakete** – Installiert dnsmasq, pxelinux, syslinux-common, nfs-kernel-server
+1. **Pakete** – Installiert dnsmasq, nfs-kernel-server
 2. **tftpd-hpa** – Wird deaktiviert (dnsmasq übernimmt TFTP)
-3. **TFTP-Verzeichnis** – Kopiert pxelinux.0, ldlinux.c32, Menü-Module
-4. **Configs** – Deployed dnsmasq.conf, NFS exports, PXE Boot-Menü
+3. **TFTP-Verzeichnis** – Erstellt Verzeichnisstruktur
+4. **Configs** – Deployed dnsmasq.conf, NFS exports, iPXE Boot-Script
 5. **Services** – Startet und aktiviert dnsmasq + NFS-Server
 
 ### Manuelle Prüfung nach dem Script
@@ -147,9 +148,7 @@ exportfs -v
 
 # TFTP-Verzeichnis komplett?
 ls -la /srv/netboot/tftp/
-# → pxelinux.0, ldlinux.c32, menu.c32
-ls -la /srv/netboot/tftp/pxelinux.cfg/
-# → default
+# → boot.ipxe
 ls -la /srv/netboot/tftp/debian12/
 # → vmlinuz, initrd.img
 ```
@@ -167,26 +166,29 @@ ls -la /srv/netboot/tftp/debian12/
 ### 4.2 Was du sehen solltest
 
 ```
-1. PXE-ROM initialisiert
-   → "Intel E1000 PXE Boot Agent"
+1. iPXE-ROM initialisiert
+   → "iPXE initialising devices..."
+   → "net0: <MAC> using 82540em on ..."
 
 2. DHCP-Anfrage
-   → "CLIENT IP: 10.0.0.1xx"
-   → "DHCP Server: 10.0.0.2"
-   → "NBP: pxelinux.0"
+   → "Configuring (net0 <MAC>)... ok"
+   → "net0: 10.0.0.1xx/255.255.255.0"
+   → "Next server: 10.0.0.2"
+   → "Filename: boot.ipxe"
 
-3. pxelinux Boot-Menü
+3. iPXE Boot-Menü
    ╔═══════════════════════════════════════╗
    ║  NetBoot Lab - Boot Menue            ║
    ╠═══════════════════════════════════════╣
    ║  1. Debian 12 Diskless (NFS Boot)  ◄ ║
    ║  2. Debian 12 Diskless (Read-Only)   ║
    ║  3. Von lokaler Festplatte booten    ║
+   ║     iPXE Shell                        ║
    ╚═══════════════════════════════════════╝
 
 4. Kernel lädt...
-   → "Loading vmlinuz..."
-   → "Loading initrd.img..."
+   → "tftp://10.0.0.2/debian12/vmlinuz... ok"
+   → "tftp://10.0.0.2/debian12/initrd.img... ok"
 
 5. Kernel-Meldungen
    → "IP-Config: Got DHCP answer from 10.0.0.2"
@@ -247,7 +249,7 @@ journalctl -fu nfs-kernel-server
 
 #### Problem: "No DHCP offers received"
 ```
-PXE-E51: No DHCP or proxyDHCP offers were received
+No IP address configured
 ```
 **Ursache:** dnsmasq läuft nicht oder lauscht auf falschem Interface
 ```bash
@@ -262,32 +264,35 @@ ss -ulnp | grep :67
 ip addr show ens18
 ```
 
-#### Problem: "TFTP Timeout / pxelinux.0 not found"
+#### Problem: "TFTP Timeout / boot.ipxe not found"
 ```
-PXE-T01: File not found
-PXE-E3B: TFTP Error
+Could not boot: Connection timed out (http://ipxe.org/4c106035)
 ```
 **Ursache:** TFTP-Root falsch oder Datei fehlt
 ```bash
-# Dateien vorhanden?
-ls -la /srv/netboot/tftp/pxelinux.0
+# Datei vorhanden?
+ls -la /srv/netboot/tftp/boot.ipxe
 
 # TFTP-Root in dnsmasq.conf prüfen:
 grep tftp /etc/dnsmasq.conf
 
 # TFTP testen (von einem anderen Rechner im Lab):
 apt install tftp-hpa
-tftp 10.0.0.2 -c get pxelinux.0
+tftp 10.0.0.2 -c get boot.ipxe
 ```
 
-#### Problem: "menu.c32 not found" (nach pxelinux Start)
+#### Problem: iPXE bekommt kein Script (startet in Shell)
 ```
-Failed to load menu.c32
+iPXE> _
 ```
-**Ursache:** syslinux-Module fehlen im TFTP-Root
+**Ursache:** dnsmasq erkennt iPXE nicht korrekt oder boot.ipxe wird nicht zugewiesen
 ```bash
-# Module kopieren:
-cp /usr/lib/syslinux/modules/bios/{menu,ldlinux,libutil,libcom32}.c32 /srv/netboot/tftp/
+# dnsmasq-Log prüfen – iPXE-Tag gesetzt?
+grep -i ipxe /var/log/dnsmasq.log
+
+# Manueller Test aus der iPXE-Shell:
+iPXE> dhcp
+iPXE> chain tftp://10.0.0.2/boot.ipxe
 ```
 
 #### Problem: Kernel lädt, aber "VFS: Unable to mount root fs"
@@ -349,9 +354,10 @@ Alle Config-Templates liegen im Repo unter `configs/`:
 
 | Datei | Zweck | Deploy-Ziel auf Server |
 |-------|-------|----------------------|
-| `configs/dnsmasq/dnsmasq.conf` | DHCP + TFTP + PXE | `/etc/dnsmasq.conf` |
+| `configs/dnsmasq/dnsmasq.conf` | DHCP + TFTP + iPXE | `/etc/dnsmasq.conf` |
 | `configs/nfs/exports` | NFS-Exporte | `/etc/exports` |
-| `configs/pxelinux/default` | PXE Boot-Menü | `/srv/netboot/tftp/pxelinux.cfg/default` |
+| `configs/ipxe/boot.ipxe` | iPXE Boot-Script | `/srv/netboot/tftp/boot.ipxe` |
+| `configs/pxelinux/default` | Legacy PXE-Menü (nicht mehr deployed) | — |
 
 ### Anpassungen
 
@@ -382,13 +388,7 @@ exit
 ```
 /srv/netboot/
 ├── tftp/                          ← TFTP-Root (dnsmasq)
-│   ├── pxelinux.0                 ← PXE Bootloader (Legacy BIOS)
-│   ├── ldlinux.c32                ← Benötigt von pxelinux
-│   ├── menu.c32                   ← Menü-Modul
-│   ├── libutil.c32                ← Menü-Abhängigkeit
-│   ├── libcom32.c32               ← Menü-Abhängigkeit
-│   ├── pxelinux.cfg/
-│   │   └── default                ← Boot-Menü Konfiguration
+│   ├── boot.ipxe                  ← iPXE Boot-Script (Menü)
 │   └── debian12/
 │       ├── vmlinuz                ← Linux Kernel
 │       └── initrd.img             ← Initramfs (mit NFS-Support)
@@ -406,7 +406,7 @@ exit
 
 ---
 
-## ✅ Checkliste Phase 2
+## Checkliste Phase 2
 
 - [ ] Repo auf NetBoot-Server gebracht (`/opt/netboot-spielerei`)
 - [ ] `build-rootfs.sh` ausgeführt → Root-FS unter `/srv/netboot/rootfs`
@@ -416,10 +416,10 @@ exit
 - [ ] dnsmasq läuft (`systemctl status dnsmasq`)
 - [ ] NFS-Server läuft (`systemctl status nfs-kernel-server`)
 - [ ] NFS-Export aktiv (`exportfs -v`)
-- [ ] PXE-Bootmenü korrekt (`/srv/netboot/tftp/pxelinux.cfg/default`)
-- [ ] Test-Client VM (210) gestartet → PXE-Boot erfolgreich
+- [ ] iPXE Boot-Script vorhanden (`/srv/netboot/tftp/boot.ipxe`)
+- [ ] Test-Client VM (210) gestartet → iPXE-Boot erfolgreich
 - [ ] DHCP-Adresse erhalten
-- [ ] pxelinux Boot-Menü erscheint
+- [ ] iPXE Boot-Menü erscheint
 - [ ] Kernel + Initrd laden
 - [ ] NFS-Root wird gemountet
 - [ ] Login-Prompt erscheint → root / netboot

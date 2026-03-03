@@ -5,8 +5,8 @@
 # Dieses Script richtet den NetBoot-Server ein:
 # - Installiert benötigte Pakete
 # - Erstellt TFTP-Verzeichnisstruktur
-# - Kopiert PXE-Bootloader (pxelinux)
-# - Deployed Config-Dateien (dnsmasq, NFS, PXE-Menü)
+# - Deployed iPXE Boot-Script
+# - Deployed Config-Dateien (dnsmasq, NFS)
 # - Startet und aktiviert alle Services
 #
 # Ausführen auf: netboot-server (10.0.0.2)
@@ -51,9 +51,6 @@ log "Schritt 1: Benötigte Pakete installieren"
 apt-get update
 apt-get install -y \
     dnsmasq \
-    pxelinux \
-    syslinux-common \
-    syslinux-efi \
     nfs-kernel-server \
     debootstrap \
     tftpd-hpa
@@ -68,29 +65,7 @@ log "tftpd-hpa deaktiviert (dnsmasq macht TFTP)"
 # =============================================================================
 log "Schritt 2: TFTP-Verzeichnisstruktur erstellen"
 
-mkdir -p "${TFTP_ROOT}/pxelinux.cfg"
 mkdir -p "${TFTP_ROOT}/debian12"
-mkdir -p "${TFTP_ROOT}/bios"
-
-# --- PXE-Bootloader kopieren ---
-log "Kopiere pxelinux Bootloader..."
-
-# pxelinux.0 (Legacy BIOS Bootloader)
-cp /usr/lib/PXELINUX/pxelinux.0 "${TFTP_ROOT}/"
-
-# ldlinux.c32 (wird von pxelinux.0 benötigt)
-cp /usr/lib/syslinux/modules/bios/ldlinux.c32 "${TFTP_ROOT}/"
-
-# Menü-Module
-for module in menu.c32 libutil.c32 vesamenu.c32 libcom32.c32; do
-    if [[ -f "/usr/lib/syslinux/modules/bios/${module}" ]]; then
-        cp "/usr/lib/syslinux/modules/bios/${module}" "${TFTP_ROOT}/bios/"
-        # Auch ins Root für einfacheren Zugriff
-        cp "/usr/lib/syslinux/modules/bios/${module}" "${TFTP_ROOT}/"
-    fi
-done
-
-log "PXE-Bootloader kopiert"
 
 # --- Prüfen ob Kernel + Initrd vorhanden ---
 if [[ ! -f "${TFTP_ROOT}/debian12/vmlinuz" ]]; then
@@ -125,9 +100,9 @@ if [[ -f /etc/exports ]] && [[ ! -f /etc/exports.bak ]]; then
 fi
 cp "${CONFIG_DIR}/nfs/exports" /etc/exports
 
-# --- PXE Boot-Menü ---
-log "Deploye PXE Boot-Menü..."
-cp "${CONFIG_DIR}/pxelinux/default" "${TFTP_ROOT}/pxelinux.cfg/default"
+# --- iPXE Boot-Script ---
+log "Deploye iPXE Boot-Script..."
+cp "${CONFIG_DIR}/ipxe/boot.ipxe" "${TFTP_ROOT}/boot.ipxe"
 
 # =============================================================================
 # Schritt 4: Berechtigungen setzen
@@ -195,8 +170,7 @@ echo "  ├── dnsmasq (DHCP+TFTP): $(systemctl is-active dnsmasq)"
 echo "  └── NFS-Server:          $(systemctl is-active nfs-kernel-server)"
 echo ""
 echo "  TFTP-Root: ${TFTP_ROOT}"
-echo "  ├── pxelinux.0"
-echo "  ├── pxelinux.cfg/default"
+echo "  ├── boot.ipxe              (iPXE Boot-Script)"
 echo "  └── debian12/"
 echo "      ├── vmlinuz"
 echo "      └── initrd.img"
