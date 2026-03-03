@@ -1,0 +1,30 @@
+[Unit]
+Description=NetBoot AD-Auth Backend (Flask + LDAP)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/netboot-auth
+ExecStart=/usr/bin/python3 /opt/netboot-auth/app.py
+Restart=on-failure
+RestartSec=5
+
+# Umgebungsvariablen (Defaults fuer Lab)
+Environment=AD_SERVER=10.10.0.3
+Environment=AD_DOMAIN=lab.local
+Environment=AD_BASE_DN=DC=lab,DC=local
+Environment=GROUP_INSTALL=NetBoot-Install
+Environment=GROUP_ADMIN=NetBoot-Admin
+Environment=NETBOOT_SERVER=10.10.0.2
+Environment=ISCSI_IQN_PREFIX=iqn.2024-01.local.lab.netboot
+Environment=ISCSI_MANAGE=/opt/netboot-auth/iscsi-manage.sh
+
+# Sicherheit (NoNewPrivileges deaktiviert wegen sudo fuer iSCSI)
+ProtectHome=true
+ReadOnlyPaths=/opt/netboot-auth
+
+[Install]
+WantedBy=multi-user.target

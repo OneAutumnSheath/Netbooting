@@ -14,6 +14,9 @@ set initrd-path debian12/initrd.img
 # Timeout fuer automatischen Boot (in Millisekunden)
 set boot-timeout 10000
 
+# HTTP-Endpunkt fuer AD-Authentifizierung
+set auth-url http://${server-ip}/boot/auth/validate
+
 # --- Fehlerbehandlung ---
 set retry-count 0
 set max-retries 3
@@ -27,6 +30,7 @@ item --gap --             ----------------------------
 item --key 1 debian12     1. Debian 12 Diskless (NFS Boot)
 item --key 2 debian12-ro  2. Debian 12 Diskless (Read-Only)
 item --key 3 localboot    3. Von lokaler Festplatte booten
+item --key 4 windows      4. Windows (AD-Login erforderlich)
 item --gap --             ----------------------------
 item shell                iPXE Shell
 choose --timeout ${boot-timeout} --default debian12 target && goto ${target} || goto menu
@@ -48,6 +52,28 @@ echo Starte Debian 12 Diskless (Read-Only)...
 kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root} ip=dhcp ro console=ttyS0,115200n8 console=tty0 || goto retry
 initrd tftp://${server-ip}/${initrd-path} || goto retry
 boot || goto retry
+
+# ---- Windows (AD-Login) ----
+# iPXE nutzt die Settings "username" und "password" automatisch
+# fuer HTTP Basic-Auth bei chain/imgfetch Requests.
+:windows
+echo.
+echo === Windows NetBoot - AD-Anmeldung ===
+echo.
+echo Benutzername (z.B. tech01):
+read username
+echo Passwort:
+read password
+echo.
+echo Pruefe Anmeldedaten gegen Active Directory...
+chain ${auth-url} || goto auth-fail
+
+:auth-fail
+echo.
+echo FEHLER: Anmeldung fehlgeschlagen oder keine Berechtigung.
+echo Druecke eine Taste um es erneut zu versuchen...
+prompt
+goto windows
 
 # ---- Lokale Festplatte ----
 :localboot

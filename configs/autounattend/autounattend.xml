@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  autounattend.xml – NABE Automatische Windows 11 Installation
+  =============================================================
+  Pfad auf dem Server: /srv/netboot/win11/autounattend.xml
+
+  Automatisiert:
+  - TPM/SecureBoot/RAM-Check Bypass (fuer Netzwerk-/VM-Installation)
+  - Disk-Partitionierung (UEFI/GPT, Disk 0)
+  - Windows 11 Installation (Image Index 1)
+  - Deutsche Spracheinstellungen
+  - OOBE ueberspringen
+  - Temporaerer lokaler Admin (TempAdmin)
+  - Domain-Join via PowerShell-Script (C:\NABE\domain-join.ps1)
+
+  Die domain-join.ps1 wird via $OEM$-Distribution automatisch
+  nach C:\NABE\ kopiert und beim ersten Login ausgefuehrt.
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+    <!-- ================================================================= -->
+    <!-- Pass 1: windowsPE – Sprache, Disk, Image-Auswahl                 -->
+    <!-- ================================================================= -->
+    <settings pass="windowsPE">
+
+        <!-- Sprache im Setup -->
+        <component name="Microsoft-Windows-International-Core-WinPE"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SetupUILanguage>
+                <UILanguage>de-DE</UILanguage>
+            </SetupUILanguage>
+            <InputLocale>0407:00000407</InputLocale>
+            <SystemLocale>de-DE</SystemLocale>
+            <UILanguage>de-DE</UILanguage>
+            <UserLocale>de-DE</UserLocale>
+        </component>
+
+        <!-- Disk + Image -->
+        <component name="Microsoft-Windows-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+            <!-- $OEM$-Ordner verarbeiten (kopiert domain-join.ps1) -->
+            <UseConfigurationSet>true</UseConfigurationSet>
+
+            <!-- Win11 Hardware-Checks umgehen (TPM, SecureBoot, RAM) -->
+            <!-- Noetig fuer Netzwerk-Boot und VMs ohne vTPM -->
+            <RunSynchronous>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+
+            <!-- EULA -->
+            <UserData>
+                <AcceptEula>true</AcceptEula>
+                <FullName>NABE</FullName>
+                <Organization>NABE Lab</Organization>
+            </UserData>
+
+            <!-- Disk-Partitionierung: UEFI/GPT auf Disk 0 -->
+            <DiskConfiguration>
+                <Disk wcm:action="add">
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
+                    <CreatePartitions>
+                        <!-- EFI System Partition -->
+                        <CreatePartition wcm:action="add">
+                            <Order>1</Order>
+                            <Size>300</Size>
+                            <Type>EFI</Type>
+                        </CreatePartition>
+                        <!-- Microsoft Reserved -->
+                        <CreatePartition wcm:action="add">
+                            <Order>2</Order>
+                            <Size>128</Size>
+                            <Type>MSR</Type>
+                        </CreatePartition>
+                        <!-- Windows -->
+                        <CreatePartition wcm:action="add">
+                            <Order>3</Order>
+                            <Extend>true</Extend>
+                            <Type>Primary</Type>
+                        </CreatePartition>
+                    </CreatePartitions>
+                    <ModifyPartitions>
+                        <ModifyPartition wcm:action="add">
+                            <Order>1</Order>
+                            <PartitionID>1</PartitionID>
+                            <Format>FAT32</Format>
+                            <Label>System</Label>
+                        </ModifyPartition>
+                        <ModifyPartition wcm:action="add">
+                            <Order>2</Order>
+                            <PartitionID>2</PartitionID>
+                        </ModifyPartition>
+                        <ModifyPartition wcm:action="add">
+                            <Order>3</Order>
+                            <PartitionID>3</PartitionID>
+                            <Format>NTFS</Format>
+                            <Label>Windows</Label>
+                            <Letter>C</Letter>
+                        </ModifyPartition>
+                    </ModifyPartitions>
+                </Disk>
+            </DiskConfiguration>
+
+            <!-- Image-Auswahl: Index 1 (normalerweise Win11 Pro) -->
+            <ImageInstall>
+                <OSImage>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/INDEX</Key>
+                            <Value>1</Value>
+                        </MetaData>
+                    </InstallFrom>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                </OSImage>
+            </ImageInstall>
+
+        </component>
+    </settings>
+
+    <!-- ================================================================= -->
+    <!-- Pass 4: specialize – Zeitzone, Netzwerk                           -->
+    <!-- ================================================================= -->
+    <settings pass="specialize">
+
+        <component name="Microsoft-Windows-International-Core"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>0407:00000407</InputLocale>
+            <SystemLocale>de-DE</SystemLocale>
+            <UILanguage>de-DE</UILanguage>
+            <UserLocale>de-DE</UserLocale>
+        </component>
+
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <TimeZone>W. Europe Standard Time</TimeZone>
+        </component>
+
+        <!-- DNS auf AD-Server setzen fuer Domain-Join -->
+        <component name="Microsoft-Windows-DNS-Client"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DNSSuffixSearchOrder>
+                <DomainName wcm:action="add" wcm:keyValue="1">lab.local</DomainName>
+            </DNSSuffixSearchOrder>
+        </component>
+
+    </settings>
+
+    <!-- ================================================================= -->
+    <!-- Pass 7: oobeSystem – OOBE skip, lokaler Admin, Domain-Join        -->
+    <!-- ================================================================= -->
+    <settings pass="oobeSystem">
+
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+            <!-- OOBE komplett ueberspringen -->
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideLocalAccountScreen>true</HideLocalAccountScreen>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <ProtectYourPC>3</ProtectYourPC>
+            </OOBE>
+
+            <!-- Temporaerer lokaler Admin (fuer FirstLogon / Domain-Join) -->
+            <UserAccounts>
+                <LocalAccounts>
+                    <LocalAccount wcm:action="add">
+                        <Password>
+                            <Value>TempAdmin!Lab</Value>
+                            <PlainText>true</PlainText>
+                        </Password>
+                        <Name>TempAdmin</Name>
+                        <Group>Administrators</Group>
+                        <DisplayName>NABE Temp Admin</DisplayName>
+                    </LocalAccount>
+                </LocalAccounts>
+            </UserAccounts>
+
+            <!-- Einmalig als TempAdmin anmelden -->
+            <AutoLogon>
+                <Enabled>true</Enabled>
+                <Username>TempAdmin</Username>
+                <Password>
+                    <Value>TempAdmin!Lab</Value>
+                    <PlainText>true</PlainText>
+                </Password>
+                <LogonCount>1</LogonCount>
+            </AutoLogon>
+
+            <!-- Nach Login: Domain-Join Script ausfuehren -->
+            <FirstLogonCommands>
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>powershell.exe -ExecutionPolicy Bypass -File C:\NABE\domain-join.ps1</CommandLine>
+                    <Description>NABE Domain-Join mit AD-Credentials</Description>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+            </FirstLogonCommands>
+
+        </component>
+    </settings>
+
+</unattend>

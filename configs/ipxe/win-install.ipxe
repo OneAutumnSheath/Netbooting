@@ -1,0 +1,32 @@
+#!ipxe
+# =============================================================================
+# win-install.ipxe – WinPE Boot fuer Windows 11 Installation
+# =============================================================================
+# Laedt wimboot + BCD + boot.sdi + install-boot.wim via HTTP
+# =============================================================================
+
+set server-ip 10.10.0.2
+
+echo.
+echo ============================================
+echo   NABE - Windows 11 Installation
+echo ============================================
+echo.
+echo Lade WinPE-Komponenten via HTTP...
+echo.
+
+kernel http://${server-ip}/boot/wimboot || goto fail
+initrd --name bcd http://${server-ip}/boot/bcd bcd || goto fail
+initrd --name boot.sdi http://${server-ip}/boot/boot.sdi boot.sdi || goto fail
+initrd --name boot.wim http://${server-ip}/boot/install-boot.wim boot.wim || goto fail
+
+echo Alle Komponenten geladen. Starte WinPE...
+boot || goto fail
+
+:fail
+echo.
+echo FEHLER: WinPE konnte nicht geladen werden!
+echo Pruefe ob alle Dateien unter /srv/netboot/tftp/winpe/ vorhanden sind.
+echo Druecke eine Taste fuer iPXE Shell...
+prompt
+shell
