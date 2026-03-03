@@ -97,6 +97,7 @@ chroot "${ROOTFS}" /bin/bash -c "
         nfs-common \
         systemd \
         systemd-sysv \
+        systemd-resolved \
         dbus \
         locales \
         console-setup \
