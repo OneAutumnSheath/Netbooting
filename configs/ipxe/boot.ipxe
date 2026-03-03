@@ -6,7 +6,7 @@
 # =============================================================================
 
 # --- Konfiguration ---
-set server-ip 10.0.0.2
+set server-ip 10.10.0.2
 set nfs-root /srv/netboot/rootfs
 set kernel-path debian12/vmlinuz
 set initrd-path debian12/initrd.img
@@ -38,14 +38,14 @@ choose --timeout ${boot-timeout} --default debian12 target && goto ${target} || 
 # ---- Debian 12 Diskless (NFS rw) ----
 :debian12
 echo Starte Debian 12 Diskless (NFS rw)...
-kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root},vers=4,tcp ip=dhcp rw console=tty0 console=ttyS0,115200n8 || goto retry
+kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root} ip=dhcp rw console=ttyS0,115200n8 console=tty0 || goto retry
 initrd tftp://${server-ip}/${initrd-path} || goto retry
 boot || goto retry
 
 # ---- Debian 12 Diskless (Read-Only) ----
 :debian12-ro
 echo Starte Debian 12 Diskless (Read-Only)...
-kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root},vers=4,tcp ip=dhcp ro console=tty0 console=ttyS0,115200n8 || goto retry
+kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root} ip=dhcp ro console=ttyS0,115200n8 console=tty0 || goto retry
 initrd tftp://${server-ip}/${initrd-path} || goto retry
 boot || goto retry
 

@@ -109,9 +109,9 @@ cp "${CONFIG_DIR}/ipxe/boot.ipxe" "${TFTP_ROOT}/boot.ipxe"
 # =============================================================================
 log "Schritt 4: Berechtigungen setzen"
 
-# TFTP-Root muss für dnsmasq (als nobody) lesbar sein
+# TFTP-Root muss dem dnsmasq-User gehören (tftp-secure erfordert das)
 chmod -R 755 "${TFTP_ROOT}"
-chown -R root:root "${TFTP_ROOT}"
+chown -R dnsmasq:nogroup "${TFTP_ROOT}"
 
 # NFS Root-FS
 chown -R root:root "${ROOTFS}"
