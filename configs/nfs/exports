@@ -1,0 +1,15 @@
+# =============================================================================
+# /etc/exports – NFS-Exporte für NetBoot Lab
+# =============================================================================
+# Server: 10.0.0.2 (netboot-server)
+# =============================================================================
+
+# Debian 12 Diskless Root-Filesystem
+# rw           = Read-Write (Clients können schreiben)
+# no_root_squash = root auf Client = root auf Server (nötig für Boot!)
+# no_subtree_check = Performance-Optimierung
+# async        = Asynchrones Schreiben (schneller, bei Lab okay)
+/srv/netboot/rootfs  10.0.0.0/24(rw,no_root_squash,no_subtree_check,async)
+
+# TFTP-Verzeichnis (read-only, optional als Backup-Zugang)
+/srv/netboot/tftp    10.0.0.0/24(ro,no_subtree_check)
