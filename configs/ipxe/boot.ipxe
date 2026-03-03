@@ -57,19 +57,19 @@ boot || goto retry
 # iPXE nutzt die Settings "username" und "password" automatisch
 # fuer HTTP Basic-Auth bei chain/imgfetch Requests.
 :windows
-echo.
+echo
 echo === Windows NetBoot - AD-Anmeldung ===
-echo.
+echo
 echo Benutzername (z.B. tech01):
 read username
 echo Passwort:
 read password
-echo.
+echo
 echo Pruefe Anmeldedaten gegen Active Directory...
 chain ${auth-url} || goto auth-fail
 
 :auth-fail
-echo.
+echo
 echo FEHLER: Anmeldung fehlgeschlagen oder keine Berechtigung.
 echo Druecke eine Taste um es erneut zu versuchen...
 prompt

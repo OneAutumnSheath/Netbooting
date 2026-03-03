@@ -7,13 +7,13 @@
 
 set server-ip 10.10.0.2
 
-echo.
+echo
 echo ============================================
 echo   NABE - Windows 11 Installation
 echo ============================================
-echo.
+echo
 echo Lade WinPE-Komponenten via HTTP...
-echo.
+echo
 
 kernel http://${server-ip}/boot/wimboot || goto fail
 initrd --name bcd http://${server-ip}/boot/bcd bcd || goto fail
@@ -24,7 +24,7 @@ echo Alle Komponenten geladen. Starte WinPE...
 boot || goto fail
 
 :fail
-echo.
+echo
 echo FEHLER: WinPE konnte nicht geladen werden!
 echo Pruefe ob alle Dateien unter /srv/netboot/tftp/winpe/ vorhanden sind.
 echo Druecke eine Taste fuer iPXE Shell...
