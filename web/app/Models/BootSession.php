@@ -78,7 +78,7 @@ class BootSession extends Model
         array $groups,
         string $action,
     ): self {
-        $timeout = config('nabe.session_timeout', 5);
+        $timeout = (int) config('nabe.session_timeout', 5);
 
         return static::updateOrCreate(
             ['mac' => $mac],
