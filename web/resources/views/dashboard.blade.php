@@ -9,7 +9,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: #0a1929 url('/img/background.jpg') center/cover no-repeat fixed;
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -23,9 +23,10 @@
             text-align: center;
             margin-bottom: 40px;
         }
-        .header img {
-            max-height: 60px;
-            margin-bottom: 10px;
+        .header .logo {
+            height: 80px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 20px rgba(131, 243, 143, 0.3));
         }
         .header h1 {
             font-size: 2rem;
@@ -33,7 +34,7 @@
             letter-spacing: 2px;
         }
         .header .subtitle {
-            color: #8892b0;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 0.9rem;
             margin-top: 5px;
         }
@@ -47,19 +48,20 @@
         }
 
         .boot-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             padding: 30px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
         }
         .boot-card:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(100, 200, 255, 0.4);
+            background: rgba(131, 243, 143, 0.08);
+            border-color: rgba(131, 243, 143, 0.4);
             transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
         .boot-card .icon {
             font-size: 2.5rem;
@@ -72,7 +74,7 @@
         }
         .boot-card .desc {
             font-size: 0.8rem;
-            color: #8892b0;
+            color: rgba(255, 255, 255, 0.5);
         }
         .boot-card .badge {
             display: inline-block;
@@ -84,8 +86,8 @@
             color: #ffc832;
         }
         .boot-card.no-login .badge {
-            background: rgba(50, 200, 100, 0.15);
-            color: #32c864;
+            background: rgba(131, 243, 143, 0.15);
+            color: #83f38f;
         }
 
         /* Login Modal */
@@ -94,6 +96,7 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
             z-index: 100;
             align-items: center;
             justify-content: center;
@@ -102,12 +105,13 @@
             display: flex;
         }
         .modal {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(10, 25, 41, 0.95);
+            border: 1px solid rgba(131, 243, 143, 0.2);
             border-radius: 16px;
             padding: 40px;
             width: 380px;
             max-width: 90vw;
+            backdrop-filter: blur(12px);
         }
         .modal h2 {
             font-size: 1.3rem;
@@ -121,13 +125,13 @@
         .modal label {
             display: block;
             font-size: 0.85rem;
-            color: #8892b0;
+            color: rgba(255, 255, 255, 0.5);
             margin-bottom: 6px;
         }
         .modal input {
             width: 100%;
             padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             color: #fff;
@@ -135,7 +139,7 @@
             outline: none;
         }
         .modal input:focus {
-            border-color: rgba(100, 200, 255, 0.5);
+            border-color: rgba(131, 243, 143, 0.5);
         }
         .modal .btn-row {
             display: flex;
@@ -152,14 +156,16 @@
             transition: all 0.2s;
         }
         .btn-primary {
-            background: #3b82f6;
-            color: #fff;
+            background: #83f38f;
+            color: #0a1929;
+            font-weight: 600;
         }
         .btn-primary:hover {
-            background: #2563eb;
+            background: #6de07a;
         }
         .btn-primary:disabled {
             background: #555;
+            color: #999;
             cursor: not-allowed;
         }
         .btn-cancel {
@@ -178,7 +184,7 @@
             min-height: 20px;
         }
         .success-msg {
-            color: #22c55e;
+            color: #83f38f;
             font-size: 0.85rem;
             text-align: center;
             margin-top: 12px;
@@ -188,7 +194,7 @@
             text-align: center;
             margin-top: 30px;
             font-size: 0.75rem;
-            color: #555;
+            color: rgba(255, 255, 255, 0.25);
         }
 
         /* Loading spinner */
@@ -196,8 +202,8 @@
             display: none;
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
+            border: 2px solid rgba(131, 243, 143, 0.3);
+            border-top-color: #83f38f;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
             margin: 0 auto;
@@ -208,6 +214,7 @@
 </head>
 <body>
     <div class="header">
+        <img src="/img/logo.svg" alt="hast IT" class="logo">
         <h1>Support-Tools</h1>
         <div class="subtitle">Boot-Manager</div>
     </div>
