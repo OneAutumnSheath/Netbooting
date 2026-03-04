@@ -31,7 +31,7 @@ echo
 echo Lade Kiosk-Linux...
 echo
 
-kernel http://${server-ip}/boot/kiosk-linux/vmlinuz quiet rdinit=/sbin/init net.ifnames=0 video=1024x768 || goto fail
+kernel http://${server-ip}/boot/kiosk-linux/vmlinuz rdinit=/sbin/init net.ifnames=0 video=1024x768 || goto fail
 initrd http://${server-ip}/boot/kiosk-linux/initramfs.img || goto fail
 boot || goto fail
 
