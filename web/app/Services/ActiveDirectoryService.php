@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Process;
  *   - /etc/krb5.conf korrekt konfiguriert
  *
  * Flow:
- *   1. kinit --password-stdin user@REALM  → TGT holen
+ *   1. kinit user@REALM (Passwort via stdin)  → TGT holen
  *   2. ldapsearch -Y GSSAPI              → Gruppen abfragen
  *   3. kdestroy                           → Ticket loeschen
  */
@@ -31,13 +31,16 @@ class ActiveDirectoryService
 
         Log::info("AD-Auth: Versuche kinit fuer {$user}");
 
-        // Kerberos TGT holen
-        $result = Process::input($password)
-            ->run(['kinit', '--password-stdin', $user]);
+        // Kerberos TGT holen (MIT kinit liest Passwort von stdin)
+        $result = Process::input("{$password}\n")
+            ->timeout(10)
+            ->run(['kinit', $user]);
 
         if ($result->failed()) {
             Log::warning("AD-Auth: kinit fehlgeschlagen fuer {$user}", [
-                'stderr' => $result->errorOutput(),
+                'exit_code' => $result->exitCode(),
+                'stderr'    => $result->errorOutput(),
+                'stdout'    => $result->output(),
             ]);
             return null;
         }
