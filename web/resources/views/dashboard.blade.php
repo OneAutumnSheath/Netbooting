@@ -334,6 +334,15 @@
             errorMsg.textContent = '';
             successMsg.textContent = '';
 
+            const payload = {
+                username: username,
+                password: password,
+                mac: MAC,
+                action: currentAction,
+            };
+
+            console.log('[Support-Tools] Login Request:', { ...payload, password: '***' });
+
             try {
                 const res = await fetch('/auth/login', {
                     method: 'POST',
@@ -341,24 +350,35 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({
-                        username: username,
-                        password: password,
-                        mac: MAC,
-                        action: currentAction,
-                    }),
+                    body: JSON.stringify(payload),
                 });
 
-                const data = await res.json();
+                console.log('[Support-Tools] Response Status:', res.status);
+
+                const text = await res.text();
+                console.log('[Support-Tools] Response Body:', text);
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error('[Support-Tools] Response ist kein JSON:', text);
+                    errorMsg.textContent = 'Server-Fehler (kein JSON). Siehe Console.';
+                    return;
+                }
+
+                console.log('[Support-Tools] Parsed Response:', data);
 
                 if (data.success) {
                     successMsg.textContent = data.message;
-                    // Kurz warten, dann Reboot ausloesen
+                    console.log('[Support-Tools] Login erfolgreich, reboot in 2s...');
                     setTimeout(() => agentReboot(), 2000);
                 } else {
                     errorMsg.textContent = data.message || 'Anmeldung fehlgeschlagen.';
+                    console.warn('[Support-Tools] Login fehlgeschlagen:', data.message);
                 }
             } catch (err) {
+                console.error('[Support-Tools] Fetch Error:', err);
                 errorMsg.textContent = 'Verbindung zum Server fehlgeschlagen.';
             } finally {
                 btn.disabled = false;
