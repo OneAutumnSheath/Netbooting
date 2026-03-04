@@ -257,6 +257,24 @@
 
     <div class="mac-info">MAC: {{ $mac }}</div>
 
+    <!-- Admin-Erstellen Modal -->
+    <div class="modal-overlay" id="createAdminModal">
+        <div class="modal">
+            <h2>Admin-Umgebung erstellen</h2>
+            <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;" id="createAdminMsg"></p>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 24px;">
+                Es wird eine neue 60 GB iSCSI-Disk erstellt und Windows Setup gestartet.
+            </p>
+            <div class="btn-row">
+                <button class="btn btn-cancel" onclick="closeCreateAdmin()">Abbrechen</button>
+                <button class="btn btn-primary" id="createAdminBtn" onclick="confirmCreateAdmin()">Erstellen</button>
+            </div>
+            <div class="error-msg" id="createAdminError"></div>
+            <div class="success-msg" id="createAdminSuccess"></div>
+            <div class="spinner" id="createAdminSpinner"></div>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
@@ -374,27 +392,10 @@
                     console.log('[Support-Tools] Login erfolgreich, reboot in 2s...');
                     setTimeout(() => agentReboot(), 2000);
                 } else if (data.needs_create) {
-                    // Kein Admin-Image → Nachfragen ob eins erstellt werden soll
-                    console.log('[Support-Tools] Kein Admin-Image, frage nach Erstellung...');
-                    if (confirm(data.message + '\n\nJetzt eine neue Admin-Umgebung erstellen?')) {
-                        // Nochmal senden mit admin-install
-                        currentAction = 'admin-install';
-                        errorMsg.textContent = '';
-                        successMsg.textContent = 'Erstelle Admin-Umgebung...';
-                        const res2 = await fetch('/auth/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify({ username, password, mac: MAC, action: 'admin-install' }),
-                        });
-                        const data2 = await res2.json();
-                        console.log('[Support-Tools] Admin-Install Response:', data2);
-                        if (data2.success) {
-                            successMsg.textContent = data2.message;
-                            setTimeout(() => agentReboot(), 2000);
-                        } else {
-                            errorMsg.textContent = data2.message || 'Erstellung fehlgeschlagen.';
-                        }
-                    }
+                    // Kein Admin-Image → Modal anzeigen
+                    console.log('[Support-Tools] Kein Admin-Image, zeige Erstellungs-Modal...');
+                    closeModal();
+                    showCreateAdminModal(data.message, username, password);
                 } else {
                     errorMsg.textContent = data.message || 'Anmeldung fehlgeschlagen.';
                     console.warn('[Support-Tools] Login fehlgeschlagen:', data.message);
@@ -404,6 +405,65 @@
                 errorMsg.textContent = 'Verbindung zum Server fehlgeschlagen.';
             } finally {
                 btn.disabled = false;
+                spinner.classList.remove('active');
+            }
+        }
+
+        let pendingAdminUser = null;
+        let pendingAdminPass = null;
+
+        function showCreateAdminModal(message, username, password) {
+            pendingAdminUser = username;
+            pendingAdminPass = password;
+            document.getElementById('createAdminMsg').textContent = message;
+            document.getElementById('createAdminError').textContent = '';
+            document.getElementById('createAdminSuccess').textContent = '';
+            document.getElementById('createAdminBtn').disabled = false;
+            document.getElementById('createAdminModal').classList.add('active');
+        }
+
+        function closeCreateAdmin() {
+            document.getElementById('createAdminModal').classList.remove('active');
+            pendingAdminUser = null;
+            pendingAdminPass = null;
+        }
+
+        async function confirmCreateAdmin() {
+            const btn = document.getElementById('createAdminBtn');
+            const spinner = document.getElementById('createAdminSpinner');
+            const errorEl = document.getElementById('createAdminError');
+            const successEl = document.getElementById('createAdminSuccess');
+
+            btn.disabled = true;
+            spinner.classList.add('active');
+            errorEl.textContent = '';
+            successEl.textContent = 'Erstelle Admin-Umgebung...';
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        username: pendingAdminUser,
+                        password: pendingAdminPass,
+                        mac: MAC,
+                        action: 'admin-install',
+                    }),
+                });
+                const data = await res.json();
+                console.log('[Support-Tools] Admin-Install Response:', data);
+                if (data.success) {
+                    successEl.textContent = data.message;
+                    setTimeout(() => agentReboot(), 2000);
+                } else {
+                    errorEl.textContent = data.message || 'Erstellung fehlgeschlagen.';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error('[Support-Tools] Admin-Install Error:', err);
+                errorEl.textContent = 'Verbindung zum Server fehlgeschlagen.';
+                btn.disabled = false;
+            } finally {
                 spinner.classList.remove('active');
             }
         }
@@ -419,7 +479,7 @@
 
         // ESC schliesst Modal
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') { closeModal(); closeCreateAdmin(); }
         });
     </script>
 </body>
