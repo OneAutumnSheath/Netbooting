@@ -149,7 +149,7 @@ class IpxeScriptService
         kernel http://{$this->serverIp}/boot/winpe/wimboot || goto fail
         initrd --name bcd http://{$this->serverIp}/boot/winpe/bcd bcd || goto fail
         initrd --name boot.sdi http://{$this->serverIp}/boot/winpe/boot.sdi boot.sdi || goto fail
-        initrd --name boot.wim http://{$this->serverIp}/boot/winpe/install-boot.wim boot.wim || goto fail
+        initrd --name boot.wim http://{$this->serverIp}/boot/winpe/admin-boot.wim boot.wim || goto fail
         boot || goto fail
 
         :fail
