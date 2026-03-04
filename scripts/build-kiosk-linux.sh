@@ -260,7 +260,7 @@ chroot "${KIOSK_ROOT}" /bin/bash -c "
     apt-get clean
     rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/*
     rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/*
-    rm -rf /usr/share/locale/!(de|en|locale.alias)
+    find /usr/share/locale/ -mindepth 1 -maxdepth 1 -type d ! -name 'de' ! -name 'en' -exec rm -rf {} + 2>/dev/null || true
     rm -rf /var/log/*
 "
 
