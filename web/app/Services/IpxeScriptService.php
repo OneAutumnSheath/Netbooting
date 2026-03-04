@@ -100,13 +100,20 @@ class IpxeScriptService
         #!ipxe
         echo
         echo Starte Admin-Umgebung fuer {$username}...
-        echo Verbinde mit iSCSI-Target...
+        echo
         set initiator-iqn iqn.2024-01.local.lab:{$username}
-        sanboot iscsi:{$this->serverIp}::::{$targetIqn} || goto fail
+        echo [DEBUG] initiator-iqn: \${initiator-iqn}
+        echo [DEBUG] target: {$targetIqn}
+        echo [DEBUG] server: {$this->serverIp}
+        echo [DEBUG] sanboot iscsi:{$this->serverIp}::3260:1:{$targetIqn}
+        echo
+        echo Verbinde mit iSCSI-Target...
+        sanboot iscsi:{$this->serverIp}::3260:1:{$targetIqn} || goto fail
 
         :fail
+        echo
         echo FEHLER: iSCSI-Boot fehlgeschlagen!
-        echo Druecke eine Taste...
+        echo Druecke eine Taste fuer iPXE Shell...
         prompt
         shell
         IPXE;
@@ -126,9 +133,13 @@ class IpxeScriptService
         echo   Neue Admin-Umgebung fuer {$username}
         echo ============================================
         echo
-        echo Verbinde iSCSI-Disk (Netzwerk-Festplatte)...
         set initiator-iqn iqn.2024-01.local.lab:{$username}
-        sanhook iscsi:{$this->serverIp}::::{$targetIqn} || goto fail
+        echo [DEBUG] initiator-iqn: \${initiator-iqn}
+        echo [DEBUG] target: {$targetIqn}
+        echo [DEBUG] sanhook iscsi:{$this->serverIp}::3260:1:{$targetIqn}
+        echo
+        echo Verbinde iSCSI-Disk (Netzwerk-Festplatte)...
+        sanhook iscsi:{$this->serverIp}::3260:1:{$targetIqn} || goto fail
         echo iSCSI-Disk verbunden.
         echo
         echo Lade WinPE fuer Windows-Installation...
