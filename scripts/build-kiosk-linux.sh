@@ -115,7 +115,8 @@ chroot "${KIOSK_ROOT}" /bin/bash -c "
         python3 \
         kbd \
         ca-certificates \
-        dbus-x11
+        dbus-x11 \
+        systemd-resolved
 "
 
 log "Pakete installiert"
