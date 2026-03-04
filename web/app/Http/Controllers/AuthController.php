@@ -69,6 +69,17 @@ class AuthController extends Controller
         }
 
         // Admin: iSCSI-Target pruefen/erstellen
+        if ($action === 'admin-boot') {
+            if (! $this->iscsiImageExists($username)) {
+                // Kein Image → Frontend fragen ob eins erstellt werden soll
+                return response()->json([
+                    'success'      => false,
+                    'needs_create' => true,
+                    'message'      => "Keine Admin-Umgebung fuer '{$username}' vorhanden.",
+                ]);
+            }
+        }
+
         if ($action === 'admin-install') {
             $created = $this->ensureIscsiTarget($username);
             if (! $created) {
@@ -76,15 +87,6 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'iSCSI-Target konnte nicht erstellt werden.',
                 ], 500);
-            }
-        }
-
-        if ($action === 'admin-boot') {
-            if (! $this->iscsiImageExists($username)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Kein Admin-Image vorhanden. Bitte zuerst "Admin-Umgebung erstellen" waehlen.',
-                ], 404);
             }
         }
 

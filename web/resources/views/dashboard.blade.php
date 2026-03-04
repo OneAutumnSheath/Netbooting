@@ -373,6 +373,28 @@
                     successMsg.textContent = data.message;
                     console.log('[Support-Tools] Login erfolgreich, reboot in 2s...');
                     setTimeout(() => agentReboot(), 2000);
+                } else if (data.needs_create) {
+                    // Kein Admin-Image → Nachfragen ob eins erstellt werden soll
+                    console.log('[Support-Tools] Kein Admin-Image, frage nach Erstellung...');
+                    if (confirm(data.message + '\n\nJetzt eine neue Admin-Umgebung erstellen?')) {
+                        // Nochmal senden mit admin-install
+                        currentAction = 'admin-install';
+                        errorMsg.textContent = '';
+                        successMsg.textContent = 'Erstelle Admin-Umgebung...';
+                        const res2 = await fetch('/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ username, password, mac: MAC, action: 'admin-install' }),
+                        });
+                        const data2 = await res2.json();
+                        console.log('[Support-Tools] Admin-Install Response:', data2);
+                        if (data2.success) {
+                            successMsg.textContent = data2.message;
+                            setTimeout(() => agentReboot(), 2000);
+                        } else {
+                            errorMsg.textContent = data2.message || 'Erstellung fehlgeschlagen.';
+                        }
+                    }
                 } else {
                     errorMsg.textContent = data.message || 'Anmeldung fehlgeschlagen.';
                     console.warn('[Support-Tools] Login fehlgeschlagen:', data.message);
