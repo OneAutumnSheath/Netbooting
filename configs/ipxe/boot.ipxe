@@ -1,103 +1,48 @@
 #!ipxe
 # =============================================================================
-# boot.ipxe – iPXE Boot-Script fuer NetBoot Lab
+# boot.ipxe – iPXE Boot-Script fuer Support-Tools
 # =============================================================================
 # Pfad auf dem Server: /srv/netboot/tftp/boot.ipxe
+#
+# Flow:
+#   1. Session-Check: Hat dieser Client eine aktive Boot-Session?
+#      → Ja: iPXE-Script vom Server ausfuehren (Install/HBCD/Admin/etc.)
+#      → Nein: Kiosk-Linux laden (Dashboard im Browser)
+#
+#   2. Kiosk-Linux startet X11 + Firefox → http://10.10.0.2/dashboard?mac=XX
+#   3. User waehlt Boot-Option im Dashboard, loggt sich ggf. ein
+#   4. Laravel erstellt Boot-Session, Kiosk-Linux rebooted
+#   5. iPXE startet erneut → Session vorhanden → Boot-Script ausfuehren
 # =============================================================================
 
-# --- Konfiguration ---
 set server-ip 10.10.0.2
-set nfs-root /srv/netboot/rootfs
-set kernel-path debian12/vmlinuz
-set initrd-path debian12/initrd.img
 
-# Timeout fuer automatischen Boot (in Millisekunden)
-set boot-timeout 10000
+# --- Session-Check ---
+# Wenn eine aktive Boot-Session existiert, liefert der Server ein iPXE-Script.
+# Bei 404 (keine Session) faellt iPXE durch zum Kiosk-Linux.
+chain http://${server-ip}/boot/session/${net0/mac} && goto done ||
 
-# HTTP-Endpunkt fuer AD-Authentifizierung
-set auth-url http://${server-ip}/boot/auth/validate
-
-# --- Fehlerbehandlung ---
-set retry-count 0
-set max-retries 3
-
-# =============================================================================
-# Boot-Menue
-# =============================================================================
-:menu
-menu ========= NetBoot Lab - Boot Menue =========
-item --gap --             ----------------------------
-item --key 1 debian12     1. Debian 12 Diskless (NFS Boot)
-item --key 2 debian12-ro  2. Debian 12 Diskless (Read-Only)
-item --key 3 localboot    3. Von lokaler Festplatte booten
-item --key 4 windows      4. Windows (AD-Login erforderlich)
-item --gap --             ----------------------------
-item shell                iPXE Shell
-choose --timeout ${boot-timeout} --default debian12 target && goto ${target} || goto menu
-
-# =============================================================================
-# Boot-Optionen
-# =============================================================================
-
-# ---- Debian 12 Diskless (NFS rw) ----
-:debian12
-echo Starte Debian 12 Diskless (NFS rw)...
-kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root} ip=dhcp rw console=ttyS0,115200n8 console=tty0 || goto retry
-initrd tftp://${server-ip}/${initrd-path} || goto retry
-boot || goto retry
-
-# ---- Debian 12 Diskless (Read-Only) ----
-:debian12-ro
-echo Starte Debian 12 Diskless (Read-Only)...
-kernel tftp://${server-ip}/${kernel-path} root=/dev/nfs nfsroot=${server-ip}:${nfs-root} ip=dhcp ro console=ttyS0,115200n8 console=tty0 || goto retry
-initrd tftp://${server-ip}/${initrd-path} || goto retry
-boot || goto retry
-
-# ---- Windows (AD-Login) ----
-# iPXE nutzt die Settings "username" und "password" automatisch
-# fuer HTTP Basic-Auth bei chain/imgfetch Requests.
-:windows
+# --- Keine Session: Kiosk-Linux laden ---
 echo
-echo === Windows NetBoot - AD-Anmeldung ===
+echo ============================================
+echo   Support-Tools Boot-Manager
+echo ============================================
 echo
-echo Benutzername (z.B. tech01):
-read username
-echo Passwort:
-read password
+echo Lade Kiosk-Linux...
 echo
-echo Pruefe Anmeldedaten gegen Active Directory...
-chain ${auth-url} || goto auth-fail
 
-:auth-fail
-echo
-echo FEHLER: Anmeldung fehlgeschlagen oder keine Berechtigung.
-echo Druecke eine Taste um es erneut zu versuchen...
-prompt
-goto windows
+kernel http://${server-ip}/boot/kiosk-linux/vmlinuz quiet rdinit=/sbin/init net.ifnames=0 video=1024x768 || goto fail
+initrd http://${server-ip}/boot/kiosk-linux/initramfs.img || goto fail
+boot || goto fail
 
-# ---- Lokale Festplatte ----
-:localboot
-echo Boote von lokaler Festplatte...
-exit 1
-
-# ---- iPXE Shell ----
-:shell
-echo Tippe 'exit' um zum Menue zurueckzukehren
-shell
-goto menu
-
-# =============================================================================
-# Fehlerbehandlung mit Retry
-# =============================================================================
-:retry
-inc retry-count
-echo FEHLER: Boot fehlgeschlagen! (Versuch ${retry-count} von ${max-retries})
-iseq ${retry-count} ${max-retries} && goto fail ||
-echo Neuer Versuch in 3 Sekunden...
-sleep 3
-goto menu
+:done
+# chain hat bereits das iPXE-Script vom Server ausgefuehrt
 
 :fail
-echo Alle ${max-retries} Versuche fehlgeschlagen.
-echo Starte iPXE Shell zur Diagnose...
+echo
+echo FEHLER: Kiosk-Linux konnte nicht geladen werden!
+echo Pruefe Netzwerk und Server-Erreichbarkeit.
+echo
+echo Druecke eine Taste fuer iPXE Shell...
+prompt
 shell

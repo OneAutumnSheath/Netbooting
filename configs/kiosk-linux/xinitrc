@@ -1,0 +1,13 @@
+#!/bin/sh
+# =============================================================================
+# xinitrc – X11-Startscript fuer NABE Kiosk-Linux
+# =============================================================================
+# Pfad im Initramfs: /home/kiosk/.xinitrc (Fallback)
+# Wird normalerweise nicht benoetigt, da nabe-kiosk.sh direkt gestartet wird.
+# =============================================================================
+
+xset s off
+xset -dpms
+xset s noblank
+
+exec /usr/local/bin/nabe-kiosk.sh

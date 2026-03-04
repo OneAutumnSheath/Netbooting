@@ -1,0 +1,23 @@
+# =============================================================================
+# nabe-kiosk.service – X11 + Firefox Kiosk fuer NABE Dashboard
+# =============================================================================
+# Pfad im Initramfs: /etc/systemd/system/nabe-kiosk.service
+# Startet X11 mit Firefox ESR im Kiosk-Modus, zeigt das Laravel-Dashboard.
+# =============================================================================
+
+[Unit]
+Description=NABE Kiosk (X11 + Firefox)
+After=network-online.target nabe-agent.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kiosk
+Environment=HOME=/home/kiosk
+ExecStartPre=/bin/sh -c 'while ! ip addr show eth0 | grep -q "inet "; do sleep 1; done'
+ExecStart=/usr/bin/xinit /usr/local/bin/nabe-kiosk.sh -- :0 vt1 -nolisten tcp -nocursor
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

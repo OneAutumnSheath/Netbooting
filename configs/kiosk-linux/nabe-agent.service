@@ -1,0 +1,23 @@
+# =============================================================================
+# nabe-agent.service – Lokaler kexec/reboot Agent fuer Kiosk-Linux
+# =============================================================================
+# Pfad im Initramfs: /etc/systemd/system/nabe-agent.service
+# HTTP-Server auf localhost:8080, nimmt Befehle vom Browser entgegen:
+#   POST /kexec   – Laedt Kernel via kexec
+#   POST /reboot  – Neustart
+#   POST /poweroff – Herunterfahren
+# =============================================================================
+
+[Unit]
+Description=NABE Local Agent (kexec/reboot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/nabe-agent.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

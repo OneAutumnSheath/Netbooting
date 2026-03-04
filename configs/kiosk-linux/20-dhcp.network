@@ -1,0 +1,15 @@
+# =============================================================================
+# 20-dhcp.network – systemd-networkd DHCP-Config fuer Kiosk-Linux
+# =============================================================================
+# Pfad im Initramfs: /etc/systemd/network/20-dhcp.network
+# =============================================================================
+
+[Match]
+Name=eth0
+
+[Network]
+DHCP=yes
+
+[DHCP]
+UseDNS=yes
+UseNTP=no
