@@ -71,7 +71,7 @@ class ActiveDirectoryService
             ->timeout(10)
             ->run([
                 'ldapsearch', '-Y', 'GSSAPI', '-Q',
-                '-H', 'ldap://' . config('nabe.ad_server'),
+                '-H', 'ldap://' . config('nabe.ad_hostname', config('nabe.ad_server')),
                 '-b', config('nabe.ad_base_dn'),
                 "(sAMAccountName={$username})",
                 'memberOf',
