@@ -20,23 +20,29 @@
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 40px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            z-index: 10;
         }
         .header .logo {
-            height: 80px;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 0 20px rgba(131, 243, 143, 0.3));
+            height: 36px;
+            margin-right: 14px;
+            filter: drop-shadow(0 0 12px rgba(131, 243, 143, 0.3));
         }
         .header h1 {
-            font-size: 2rem;
-            font-weight: 300;
-            letter-spacing: 2px;
+            font-size: 1.3rem;
+            font-weight: 400;
+            letter-spacing: 1px;
         }
         .header .subtitle {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+            margin-left: 12px;
         }
 
         .boot-grid {
@@ -216,7 +222,7 @@
     <div class="header">
         <img src="/img/logo.svg" alt="hast IT" class="logo">
         <h1>Support-Tools</h1>
-        <div class="subtitle">Boot-Manager</div>
+        <span class="subtitle">Boot-Manager</span>
     </div>
 
     <div class="boot-grid">
